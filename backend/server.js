@@ -6,6 +6,7 @@ import {v2 as cloudinary} from 'cloudinary';
 import authRoutes from './routes/auth_routes.js';
 import userRoutes from './routes/user_routes.js';
 import postRoutes from './routes/post_routes.js'
+import notificationRoutes from './routes/notification_routes.js'
 
 import connectMongoDB from './db/connectMongoDB.js';
 
@@ -31,6 +32,7 @@ const port=process.env.PORT;
 app.use('/api/auth',authRoutes);
 app.use('/api/users',userRoutes);
 app.use('/api/posts/',postRoutes);
+app.use('/api/notifications',notificationRoutes);
 
 app.listen(port,()=>{
     console.log(`Server is runnig in the port having the port number: ${port}`);
