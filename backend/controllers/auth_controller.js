@@ -2,68 +2,63 @@ import User from '../models/user_model.js';
 import bcrypt from 'bcrypt';
 import { generateTokenAndSetCookie } from '../lib/utils/generateToken.js';
 export const signup = async (req, res) => {
-    try{
-        const {fullname,username,email,password} = req.body;
+  try {
+      const { fullname, username, email, password } = req.body;
 
-        // const emailRegex = new RegExp('/^[^\s@]+@[^\s@+\.[^\s@]+$/');
-        // if(!emailRegex.test(email)){
-        //     return res.status(400).json({error: 'Invalid email Format'});
-        // }d
-        if(password.length<6){
-            return res.status(400).json({error: 'Password should be of minimum length of 6'});
-        }
-        const existingUser = await User.findOne({username});
+      // Check for password length
+      if (password.length < 6) {
+          return res.status(400).json({ error: 'Password should be of minimum length of 6' });
+      }
 
-        if(existingUser){
-            return res.status(400).json({error: 'Username is already exists'});
-        }
+      // Check if the username already exists
+      const existingUser = await User.findOne({ username });
+      if (existingUser) {
+          return res.status(400).json({ error: 'Username already exists' });
+      }
 
-        const existingEmail = await User.findOne({email});
+      // Check if the email already exists
+      const existingEmail = await User.findOne({ email });
+      if (existingEmail) {
+          return res.status(400).json({ error: 'Email already exists' });
+      }
 
-        if(existingEmail){
-            return res.status(400).json({error: 'Email is already exists'});
-        }
-            const salt = await bcrypt.genSalt(10);
-            const hashPassword =  await bcrypt.hash(password,salt);
-        
-            const newUser= new User({
-                fullname,
-                username,
-                email,
-                password:hashPassword,
-            })
-        
-            if(newUser){
-                generateTokenAndSetCookie(newUser._id,res);
-                await newUser.save();
-                //to save this user to the database 
-        
-                return res.status(201).json({
-                    _id:newUser._id,
-                    fullname:newUser.fullname,
-                    username:newUser.username,
-                    email:newUser.email,
-                    followers:newUser.followers,
-                    following:newUser.following,
-                    profileImg:newUser.profileImg,
-                    coverImg:newUser.coverImg,
-                });
-            }
-            else{
-        
-                return res.status(400).json({error:"Invaid user data"});
-                }
-    }
-    catch(err){
-        console.error(`The error has occured -${err}`);
-        process.exit(1);
-    }
+      // Hash password
+      const salt = await bcrypt.genSalt(10);
+      const hashPassword = await bcrypt.hash(password, salt);
+
+      // Create new user
+      const newUser = new User({
+          fullname,
+          username,
+          email,
+          password: hashPassword,
+      });
+
+      // Save user and return response
+      await newUser.save();
+      generateTokenAndSetCookie(newUser._id, res);
+
+      return res.status(201).json({
+          _id: newUser._id,
+          fullname: newUser.fullname,
+          username: newUser.username,
+          email: newUser.email,
+          followers: newUser.followers,
+          following: newUser.following,
+          profileImg: newUser.profileImg,
+          coverImg: newUser.coverImg,
+      });
+  } catch (err) {
+      console.error(`The error has occurred - ${err}`);
+      return res.status(500).json({ error: "Server error" });
+  }
+};
+
 
     //creating the secured password
     //hash password 
     //This can be sone using the bcrypt.js package availbale 
     
-}
 export const login = async (req, res) => {
     try {
       const { username, password } = req.body;
