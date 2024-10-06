@@ -89,7 +89,7 @@ export const getSuggestedUsers = async (req, res) => {
 }
 export const updateUser = async (req, res) => {
     const {fullname,email,username,currentPassword,newPassword,Bio,link} = req.body;
-    let {profileImg,coverImg} = req.body;
+    let {profileImage,coverImg} = req.body;
 
     const userId = req.user._id;
 
@@ -98,9 +98,6 @@ export const updateUser = async (req, res) => {
         if(!user){
             return res.status(404).json({message:"User not found"});
         }
-        // if(!newPassword || !currentPassword){
-        //     return res.status(400).json({message:"Provide the both the current and new passwords"});
-        // }
         if(currentPassword&&newPassword){
             const isMatch = await bcrypt.compare(currentPassword,newPassword);
             if(!isMatch){
@@ -113,31 +110,33 @@ export const updateUser = async (req, res) => {
             const salt = await bcrypt.genSalt(10);
             user.password = await bcrypt.hash(newPassword, salt);
         }
-        if(profileImg){
-            
-            if(user.profileImage){
-                await cloudinary.uploader.destroy(user.profileImage.split('/').pop().split('.')[0]);
-            }
-            const uploadResponse = await cloudinary.uploader(profileImg);
-            profileImg =  await uploadResponse.secure_url;
-        }
-        if(coverImg){
-            if(user.coverImg){
-                await cloudinary.uploader.destroy(user.coverImg.split('/').pop().split('.')[0]);
-            }
-            const uploadResponse = await cloudinary.uploader(coverImg);
-            coverImg = await uploadResponse.secure_url;
-        }
+        if (profileImage) {
+			if (user.profileImage) {
+				// https://res.cloudinary.com/dyfqon1v6/image/upload/v1712997552/zmxorcxexpdbh8r0bkjb.png
+				await cloudinary.uploader.destroy(user.profileImage.split("/").pop().split(".")[0]);
+			}
+
+			const uploadedResponse = await cloudinary.uploader.upload(profileImage);
+			profileImage = uploadedResponse.secure_url;
+		}
+
+		if (coverImg) {
+			if (user.coverImg) {
+				await cloudinary.uploader.destroy(user.coverImg.split("/").pop().split(".")[0]);
+			}
+			const uploadedResponse = await cloudinary.uploader.upload(coverImg);
+			coverImg = uploadedResponse.secure_url;
+		}
 
         user.fullname = fullname || user.fullname;
         user.username = username || user.username;
         user.email =  email || user.email
         user.Bio = Bio || user.Bio;
         user.link = link || user.link;
-        user.profileImage = profileImg || user.profileImage;
+        user.profileImage = profileImage || user.profileImage;
         user.coverImg = coverImg || user.coverImg;
 
-        await user.save();
+        user = await user.save();
 
         user.password = null;
          return res.status(200).json(user)

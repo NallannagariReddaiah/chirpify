@@ -5,39 +5,35 @@ import Post from '../models/postModel.js';
 import {v2 as cloudinary} from 'cloudinary'
 
 export const createPost = async (req, res) =>{
-    try{
-        const {text} = req.body;
-        let { img } = req.body;
-        const userId = req.user._id.toString();
+    try {
+		const { text } = req.body;
+		let { img } = req.body;
+		const userId = req.user._id.toString();
 
-        const user = await User.findById(userId);
+		const user = await User.findById(userId);
+		if (!user) return res.status(404).json({ message: "User not found" });
 
-        if(!user){
-            return res.status(404).json({message:"User not found"});
-        }
-        if(!text &&!img){
-            return res.status(400).json({error: "Post must have text (or) image"});
-        }
+		if (!text && !img) {
+			return res.status(400).json({ error: "Post must have text or image" });
+		}
 
-        if(img){
-            const uploadResponse = await cloudinary.uploader(img);  
-            img = uploadResponse.secure_url;
-        }
+		if (img) {
+			const uploadedResponse = await cloudinary.uploader.upload(img);
+			img = uploadedResponse.secure_url;
+		}
 
-        const newPost = new Post({
-            user:userId,
-            text,
-            img,
-        })
+		const newPost = new Post({
+			user: userId,
+			text,
+			img,
+		});
 
-        await newPost.save();
-
-        return res.status(200).json({success:"Post is successfully posted"});
-    }
-    catch(error){
-        console.log(`Error took plaae at post creation-${error}`);
-        return res.status(500).json({error:"Internal server error"});
-    }
+		await newPost.save();
+		res.status(201).json(newPost);
+	} catch (error) {
+		res.status(500).json({ error: "Internal server error" });
+		console.log("Error in createPost controller: ", error);
+	}
 }
 
 export const deletePost = async (req, res) => {
@@ -102,44 +98,45 @@ export const commentPost = async (req,res)=>{
 
 export const likeUnlikePost = async (req, res) => {
 
-    try{
-        const userId = req.user._id;
-        const {id:postId} = req.params;
+    try {
+		const userId = req.user._id;
+		const { id: postId } = req.params;
 
-        const post = await Post.findById(postId);
+		const post = await Post.findById(postId);
 
-        if(!post) {
-            return res.status(404).json({error:"Post Not Found"});
-        }
+		if (!post) {
+			return res.status(404).json({ error: "Post not found" });
+		}
 
-        const userLikedPost = post.likes.includes(userId);
+		const userLikedPost = post.likes.includes(userId);
 
-        if(userLikedPost){
-            // Now we are gonna delete  the previuosly given post
-            await post.updateOne({_id:postId}, {$pull:{likes:userId}});
-            await User.updateOne({_id:userId}, {$pull:{likedPosts:postId}});
-            post.save();
-            res.status(200).json({success:"Like deleted successfully"});
-        }
-        else{
-            // we are gonna add the like for that post
-            post.likes.push(userId);
-            await User.updateOne({_id:userId}, {$push:{likedPosts:postId}});
-            post.save();
+		if (userLikedPost) {
+			// Unlike post
+			await Post.updateOne({ _id: postId }, { $pull: { likes: userId } });
+			await User.updateOne({ _id: userId }, { $pull: { likedPosts: postId } });
 
-            const notification =new Notification({
-                from: userId,
-                to: post.user,
-                type:"like",
-            })
-            await notification.save();
+			const updatedLikes = post.likes.filter((id) => id.toString() !== userId.toString());
+			res.status(200).json(updatedLikes);
+		} else {
+			// Like post
+			post.likes.push(userId);
+			await User.updateOne({ _id: userId }, { $push: { likedPosts: postId } });
+			await post.save();
 
-            return res.status(200).json({message:"post liked successfully"});
-        }
-    }
-    catch(error){
+			const notification = new Notification({
+				from: userId,
+				to: post.user,
+				type: "like",
+			});
+			await notification.save();
 
-    }
+			const updatedLikes = post.likes;
+			res.status(200).json(updatedLikes);
+		}
+	} catch (error) {
+		console.log("Error in likeUnlikePost controller: ", error);
+		res.status(500).json({ error: "Internal server error" });
+	}
 
 }
 export const getAllPosts = async (req, res) => {

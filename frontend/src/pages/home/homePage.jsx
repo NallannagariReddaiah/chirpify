@@ -1,7 +1,7 @@
 import { useState } from "react";
 
 import Posts from "../../components/common/Posts";
-import CreatePost from "./CreatePost";
+import CreatePost from "./CreatePost.jsx";
 
 const HomePage = () => {
 	const [feedType, setFeedType] = useState("forYou");
@@ -37,7 +37,7 @@ const HomePage = () => {
 				<CreatePost />
 
 				{/* POSTS */}
-				<Posts feedType={feedType}/>
+				<Posts feedType={feedType} />
 			</div>
 		</>
 	);

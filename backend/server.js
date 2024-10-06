@@ -20,7 +20,7 @@ cloudinary.config({
 
 const app = express();
 
-app.use(express.json()); //for parse the req.body
+app.use(express.json({limit:"5mb"})); //for parse the req.body
 app.use(express.urlencoded({extended:true}));
 
 app.use(cookieParser());
@@ -33,6 +33,13 @@ app.use('/api/auth',authRoutes);
 app.use('/api/users',userRoutes);
 app.use('/api/posts/',postRoutes);
 app.use('/api/notifications',notificationRoutes);
+if (process.env.NODE_ENV === "production") {
+	app.use(express.static(path.join(__dirname, "/frontend/dist")));
+
+	app.get("*", (req, res) => {
+		res.sendFile(path.resolve(__dirname, "frontend", "dist", "index.html"));
+	});
+}
 
 app.listen(port,()=>{
     console.log(`Server is runnig in the port having the port number: ${port}`);
